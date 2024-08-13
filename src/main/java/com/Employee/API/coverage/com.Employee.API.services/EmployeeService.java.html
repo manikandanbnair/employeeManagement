@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">API</a> &gt; <a href="index.source.html" class="el_package">com.Employee.API.services</a> &gt; <span class="el_source">EmployeeService.java</span></div><h1>EmployeeService.java</h1><pre class="source lang-java linenums">package com.Employee.API.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+
+import org.springframework.stereotype.Service;
+
+import com.Employee.API.helpers.EmailValidator;
+import com.Employee.API.models.EmployeeModel;
+import com.Employee.API.models.ManagerEmployeeModel;
+import com.Employee.API.models.ManagerModel;
+import com.Employee.API.models.DepartmentModel;
+import com.Employee.API.repositories.EmployeeRepository;
+import com.Employee.API.repositories.ManagerEmployeeRepository;
+import com.Employee.API.repositories.ManagerRepository;
+import com.Employee.API.repositories.DepartmentRepository;
+import com.Employee.API.response.EmployeeResponseDTO;
+import com.Employee.API.response.ManagerChangeResponseDTO;
+import com.Employee.API.response.ResponseDTO;
+import com.Employee.API.response.ResponseMessage;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+<span class="fc" id="L30">public class EmployeeService {</span>
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Autowired
+    private ManagerRepository managerRepository;
+
+    @Autowired
+    private ManagerEmployeeRepository managerEmployeeRepository;
+
+    @Autowired
+    private DepartmentRepository departmentRepository;
+
+    public List&lt;DepartmentModel&gt; getAllDepartments() {
+<span class="fc" id="L45">        return departmentRepository.findAll(Sort.by(Sort.Order.asc(&quot;id&quot;)));</span>
+    }
+
+    public List&lt;EmployeeModel&gt; getAllEmployees() {
+<span class="fc" id="L49">        return employeeRepository.findAll(Sort.by(Sort.Order.asc(&quot;id&quot;)));</span>
+    }
+
+    public List&lt;ManagerModel&gt; getAllManagers() {
+<span class="fc" id="L53">        return managerRepository.findAll(Sort.by(Sort.Order.asc(&quot;id&quot;)));</span>
+    }
+
+    // Add a new employee
+    public EmployeeModel addEmployee(EmployeeModel employee) throws Exception {
+<span class="fc" id="L58">        final String id = employee.getId();</span>
+<span class="fc" id="L59">        final String email = employee.getEmail();</span>
+<span class="fc" id="L60">        final String designation = employee.getDesignation();</span>
+<span class="fc" id="L61">        final String mobileNumber = employee.getMobile();</span>
+<span class="fc" id="L62">        final String department = employee.getdepartment();</span>
+<span class="fc" id="L63">        final String managerId = employee.getManagerId();</span>
+
+        // for validating the employee data
+<span class="fc" id="L66">        validateEmployeeData(id, email, designation, mobileNumber, department, managerId);</span>
+
+<span class="fc" id="L68">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L69">        employee.setCreatedTime(now);</span>
+<span class="fc" id="L70">        employee.setUpdatedTime(now);</span>
+
+        // to check if an employee can be a manager
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        if (managerId.equals(&quot;0&quot;)) {</span>
+
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">            if (designation.equalsIgnoreCase(&quot;Account Manager&quot;)) {</span>
+
+<span class="nc" id="L77">                handleEmployeeAsManager(employee, department);</span>
+
+<span class="nc" id="L79">                return employeeRepository.save(employee);</span>
+            } else {
+<span class="fc" id="L81">                throw new IllegalArgumentException(&quot;Designation must be Account Manager for a new manager.&quot;);</span>
+            }
+        } else {
+            // add an employee to a manager if the manager exists
+<span class="fc" id="L85">            Optional&lt;ManagerEmployeeModel&gt; managerOpt = managerEmployeeRepository.findById(managerId);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">            if (managerOpt.isPresent()) {</span>
+<span class="fc" id="L87">                ManagerEmployeeModel manager = managerOpt.get();</span>
+<span class="fc" id="L88">                String managerDepartment = manager.getDepartment();</span>
+                // check for designation validity and department compatability
+<span class="fc bfc" id="L90" title="All 2 branches covered.">                if (!designation.equalsIgnoreCase(&quot;Account Manager&quot;)) {</span>
+
+<span class="fc bfc" id="L92" title="All 2 branches covered.">                    if (department.equalsIgnoreCase(managerDepartment)) {</span>
+<span class="fc" id="L93">                        updateManagerEmployeeList(manager, employee);</span>
+
+<span class="fc" id="L95">                        return employeeRepository.save(employee);</span>
+
+                    } else {
+<span class="fc" id="L98">                        throw new IllegalArgumentException(</span>
+                                &quot;Employee's department does not match the manager's department.&quot;);
+                    }
+
+                } else {
+<span class="fc" id="L103">                    throw new IllegalArgumentException(</span>
+                            &quot;Designation cannot be Account Manager for an employee with a valid manager ID.&quot;);
+                }
+            } else {
+<span class="nc" id="L107">                throw new IllegalArgumentException(&quot;Manager with ID &quot; + managerId + &quot; does not exist.&quot;);</span>
+            }
+        }
+    }
+
+    // employee details validation
+    private void validateEmployeeData(String id, String email, String designation, String mobileNumber,
+            String department, String managerId) throws IllegalArgumentException {
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        if (employeeRepository.existsById(id)) {</span>
+<span class="fc" id="L116">            throw new IllegalArgumentException(&quot;Employee with id &quot; + id + &quot; already exists.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L119" title="All 4 branches covered.">        if (!designation.equalsIgnoreCase(&quot;Account Manager&quot;) &amp;&amp; !designation.equalsIgnoreCase(&quot;associate&quot;)) {</span>
+<span class="fc" id="L120">            throw new IllegalArgumentException(&quot;Designation can only be Account Manager or associate&quot;);</span>
+        }
+
+<span class="fc bfc" id="L123" title="All 2 branches covered.">        if (employeeRepository.existsByEmail(email)) {</span>
+<span class="fc" id="L124">            throw new IllegalArgumentException(&quot;Employee with email already exists.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        if (!department.equalsIgnoreCase(&quot;sales&quot;)</span>
+<span class="pc bpc" id="L128" title="1 of 2 branches missed.">                &amp;&amp; !department.equalsIgnoreCase(&quot;delivery&quot;)</span>
+<span class="fc bfc" id="L129" title="All 2 branches covered.">                &amp;&amp; !department.equalsIgnoreCase(&quot;QA&quot;)</span>
+<span class="pc bpc" id="L130" title="1 of 2 branches missed.">                &amp;&amp; !department.equalsIgnoreCase(&quot;engineering&quot;)</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">                &amp;&amp; !department.equalsIgnoreCase(&quot;BA&quot;)) {</span>
+<span class="fc" id="L132">            throw new IllegalArgumentException(</span>
+                    &quot;Invalid department. Must be one of: sales, delivery, QA, engineering, BA&quot;);
+        }
+
+<span class="pc bpc" id="L136" title="1 of 4 branches missed.">        if (mobileNumber.length() != 10 || !mobileNumber.matches(&quot;\\d+&quot;)) {</span>
+<span class="fc" id="L137">            throw new IllegalArgumentException(&quot;Invalid mobile number. It must be a 10-digit number&quot;);</span>
+        }
+
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (!EmailValidator.isValidEmail(email)) {</span>
+<span class="fc" id="L141">            throw new IllegalArgumentException(&quot;Invalid email format&quot;);</span>
+        }
+
+<span class="fc bfc" id="L144" title="All 4 branches covered.">        if (!managerId.equals(&quot;0&quot;) &amp;&amp; !employeeRepository.existsById(managerId)) {</span>
+<span class="fc" id="L145">            throw new IllegalArgumentException(&quot;Invalid manager ID&quot;);</span>
+        }
+<span class="fc" id="L147">    }</span>
+
+    // creating a new manager if a manager is not appointed to a department
+    public void handleEmployeeAsManager(EmployeeModel newManager, String department) {
+
+        // Check if the department exists
+<span class="fc" id="L153">        Optional&lt;DepartmentModel&gt; departmentOpt = departmentRepository.findByDepartmentName(department);</span>
+<span class="fc bfc" id="L154" title="All 2 branches covered.">        if (departmentOpt.isPresent()) {</span>
+<span class="fc" id="L155">            DepartmentModel dept = departmentOpt.get();</span>
+<span class="fc" id="L156">            String currentManagerName = dept.getManagerName();</span>
+
+            // Check if the department already has a manager
+<span class="pc bpc" id="L159" title="1 of 4 branches missed.">            if (currentManagerName != null &amp;&amp; !currentManagerName.isEmpty()) {</span>
+<span class="fc" id="L160">                throw new IllegalArgumentException(</span>
+<span class="fc" id="L161">                        &quot;Department &quot; + dept.getDepartmentName() + &quot; already has a manager.&quot;);</span>
+            } else {
+
+<span class="fc" id="L164">                ManagerEmployeeModel newManagerEmployee = new ManagerEmployeeModel();</span>
+<span class="fc" id="L165">                newManagerEmployee.setId(newManager.getId());</span>
+<span class="fc" id="L166">                newManagerEmployee.setName(newManager.getName());</span>
+<span class="fc" id="L167">                newManagerEmployee.setDepartment(department);</span>
+<span class="fc" id="L168">                newManagerEmployee.setEmployeeList(new ArrayList&lt;&gt;());</span>
+<span class="fc" id="L169">                managerEmployeeRepository.save(newManagerEmployee);</span>
+
+                // Update the departmentDB with the new manager
+<span class="fc" id="L172">                dept.setManagerName(newManager.getName());</span>
+<span class="fc" id="L173">                departmentRepository.save(dept);</span>
+
+                // Creating a new manager in managerDB
+<span class="fc" id="L176">                ManagerModel newManagerModel = new ManagerModel();</span>
+<span class="fc" id="L177">                newManagerModel.setId(newManager.getId());</span>
+<span class="fc" id="L178">                newManagerModel.setName(newManager.getName());</span>
+<span class="fc" id="L179">                newManagerModel.setDepartment(department);</span>
+<span class="fc" id="L180">                managerRepository.save(newManagerModel);</span>
+
+            }
+<span class="fc" id="L183">        } else {</span>
+<span class="fc" id="L184">            throw new IllegalArgumentException(&quot;Department &quot; + department + &quot; does not exist.&quot;);</span>
+        }
+<span class="fc" id="L186">    }</span>
+
+    private void updateManagerEmployeeList(ManagerEmployeeModel manager, EmployeeModel employee) {
+<span class="fc" id="L189">        List&lt;EmployeeResponseDTO&gt; employeeList = manager.getEmployeeList();</span>
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (employeeList == null) {</span>
+<span class="nc" id="L191">            employeeList = new ArrayList&lt;&gt;();</span>
+        }
+
+        // Convert EmployeeModel to EmployeeResponseDTO without managerId
+<span class="fc" id="L195">        EmployeeResponseDTO employeeWithoutManagerId = convertToDTO(employee);</span>
+
+        // Check if employee is already in the list
+<span class="fc" id="L198">        boolean employeeExists = employeeList.stream()</span>
+<span class="pc" id="L199">                .anyMatch(e -&gt; e.getId().equals(employeeWithoutManagerId.getId()));</span>
+
+<span class="pc bpc" id="L201" title="1 of 2 branches missed.">        if (!employeeExists) {</span>
+            // Add new employee to the list
+<span class="fc" id="L203">            employeeList.add(employeeWithoutManagerId);</span>
+<span class="fc" id="L204">            manager.setEmployeeList(employeeList);</span>
+<span class="fc" id="L205">            managerEmployeeRepository.save(manager);</span>
+        }
+<span class="fc" id="L207">    }</span>
+
+    // manager with year of experience
+    public ResponseDTO managerWithExperience(String managerId, Integer minYearsOfExperience) {
+<span class="fc" id="L211">        List&lt;ResponseDTO.Details&gt; detailsList = new ArrayList&lt;&gt;();</span>
+        // case 1
+<span class="fc" id="L213">        boolean check = true;</span>
+<span class="fc bfc" id="L214" title="All 4 branches covered.">        if (managerId != null &amp;&amp; minYearsOfExperience != null) {</span>
+            try {
+<span class="fc" id="L216">                Optional&lt;ManagerEmployeeModel&gt; managerOpt = managerEmployeeRepository.findById(managerId);</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">                if (managerOpt.isPresent()) {</span>
+<span class="fc" id="L218">                    ManagerEmployeeModel manager = managerOpt.get();</span>
+<span class="fc" id="L219">                    List&lt;EmployeeResponseDTO&gt; filteredEmployees = manager.getEmployeeList().stream()</span>
+<span class="fc" id="L220">                            .filter(employee -&gt; calculateYearsOfExperience(</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">                                    employee.getDateOfJoining()) &gt;= minYearsOfExperience)</span>
+<span class="fc" id="L222">                            .map(this::removeManagerId)</span>
+<span class="fc" id="L223">                            .collect(Collectors.toList());</span>
+
+<span class="fc" id="L225">                    ResponseDTO.Details details = new ResponseDTO.Details();</span>
+<span class="fc" id="L226">                    details.setAccountManager(manager.getName());</span>
+<span class="fc" id="L227">                    details.setDepartment(manager.getDepartment());</span>
+<span class="fc" id="L228">                    details.setId(manager.getId());</span>
+<span class="fc" id="L229">                    details.setEmployeeList(filteredEmployees);</span>
+
+<span class="fc" id="L231">                    detailsList.add(details);</span>
+<span class="fc" id="L232">                } else {</span>
+<span class="nc" id="L233">                    check = false;</span>
+                }
+<span class="nc" id="L235">            } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L236">                e.getMessage();</span>
+<span class="pc" id="L237">            }</span>
+
+        } // case 2
+<span class="fc bfc" id="L240" title="All 2 branches covered.">        else if (managerId != null) {</span>
+
+<span class="fc" id="L242">            Optional&lt;ManagerEmployeeModel&gt; managerOpt = managerEmployeeRepository.findById(managerId);</span>
+<span class="pc bpc" id="L243" title="1 of 2 branches missed.">            if (managerOpt.isPresent()) {</span>
+<span class="fc" id="L244">                ManagerEmployeeModel manager = managerOpt.get();</span>
+<span class="fc" id="L245">                List&lt;EmployeeResponseDTO&gt; employees = manager.getEmployeeList().stream()</span>
+<span class="fc" id="L246">                        .map(this::removeManagerId)</span>
+<span class="fc" id="L247">                        .collect(Collectors.toList());</span>
+
+<span class="fc" id="L249">                ResponseDTO.Details details = new ResponseDTO.Details();</span>
+<span class="fc" id="L250">                details.setAccountManager(manager.getName());</span>
+<span class="fc" id="L251">                details.setDepartment(manager.getDepartment());</span>
+<span class="fc" id="L252">                details.setId(manager.getId());</span>
+<span class="fc" id="L253">                details.setEmployeeList(employees);</span>
+
+<span class="fc" id="L255">                detailsList.add(details);</span>
+            }
+<span class="fc" id="L257">        }</span>
+        // case 3
+<span class="fc bfc" id="L259" title="All 2 branches covered.">        else if (minYearsOfExperience != null) {</span>
+
+<span class="fc" id="L261">            List&lt;ManagerEmployeeModel&gt; allManagers = managerEmployeeRepository.findAll();</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">            for (ManagerEmployeeModel manager : allManagers) {</span>
+<span class="fc" id="L263">                List&lt;EmployeeResponseDTO&gt; filteredEmployees = manager.getEmployeeList().stream()</span>
+<span class="fc" id="L264">                        .filter(employee -&gt; calculateYearsOfExperience(</span>
+<span class="fc bfc" id="L265" title="All 2 branches covered.">                                employee.getDateOfJoining()) &gt;= minYearsOfExperience)</span>
+<span class="fc" id="L266">                        .map(this::removeManagerId)</span>
+<span class="fc" id="L267">                        .collect(Collectors.toList());</span>
+
+<span class="fc" id="L269">                ResponseDTO.Details details = new ResponseDTO.Details();</span>
+<span class="fc" id="L270">                details.setAccountManager(manager.getName());</span>
+<span class="fc" id="L271">                details.setDepartment(manager.getDepartment());</span>
+<span class="fc" id="L272">                details.setId(manager.getId());</span>
+<span class="fc" id="L273">                details.setEmployeeList(filteredEmployees);</span>
+
+<span class="fc" id="L275">                detailsList.add(details);</span>
+<span class="fc" id="L276">            }</span>
+<span class="fc" id="L277">        } // case 4</span>
+        else {
+
+<span class="fc" id="L280">            List&lt;ManagerEmployeeModel&gt; allManagers = managerEmployeeRepository.findAll();</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">            for (ManagerEmployeeModel manager : allManagers) {</span>
+<span class="fc" id="L282">                List&lt;EmployeeResponseDTO&gt; employees = manager.getEmployeeList().stream()</span>
+<span class="fc" id="L283">                        .map(this::removeManagerId)</span>
+<span class="fc" id="L284">                        .collect(Collectors.toList());</span>
+
+<span class="fc" id="L286">                ResponseDTO.Details details = new ResponseDTO.Details();</span>
+<span class="fc" id="L287">                details.setAccountManager(manager.getName());</span>
+<span class="fc" id="L288">                details.setDepartment(manager.getDepartment());</span>
+<span class="fc" id="L289">                details.setId(manager.getId());</span>
+<span class="fc" id="L290">                details.setEmployeeList(employees);</span>
+
+<span class="fc" id="L292">                detailsList.add(details);</span>
+<span class="fc" id="L293">            }</span>
+        }
+
+<span class="fc" id="L296">        ResponseDTO responseDTO = new ResponseDTO(managerId);</span>
+<span class="pc bpc" id="L297" title="1 of 2 branches missed.">        if (check) {</span>
+<span class="fc" id="L298">            responseDTO.setMessage(&quot;Successfully fetched&quot;);</span>
+<span class="pc bpc" id="L299" title="1 of 2 branches missed.">            if (!detailsList.isEmpty()) {</span>
+<span class="fc" id="L300">                responseDTO.setDetails(detailsList);</span>
+            }
+
+        } else {
+<span class="nc" id="L304">            responseDTO.setMessage(&quot;Invalid Manager ID&quot;);</span>
+
+        }
+
+<span class="fc" id="L308">        return responseDTO;</span>
+    }
+
+    private int calculateYearsOfExperience(LocalDateTime dateOfJoining) {
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">        if (dateOfJoining == null) {</span>
+<span class="nc" id="L313">            return 0;</span>
+        }
+<span class="fc" id="L315">        LocalDateTime currentDateTime = LocalDateTime.now();</span>
+<span class="fc" id="L316">        return (int) ChronoUnit.YEARS.between(dateOfJoining, currentDateTime);</span>
+    }
+
+    private EmployeeResponseDTO removeManagerId(EmployeeResponseDTO employee) {
+<span class="fc" id="L320">        return employee;</span>
+    }
+
+    private EmployeeResponseDTO convertToDTO(EmployeeModel employee) {
+<span class="fc" id="L324">        EmployeeResponseDTO dto = new EmployeeResponseDTO();</span>
+<span class="fc" id="L325">        dto.setId(employee.getId());</span>
+<span class="fc" id="L326">        dto.setName(employee.getName());</span>
+<span class="fc" id="L327">        dto.setDesignation(employee.getDesignation());</span>
+<span class="fc" id="L328">        dto.setEmail(employee.getEmail());</span>
+<span class="fc" id="L329">        dto.setdepartment(employee.getdepartment());</span>
+<span class="fc" id="L330">        dto.setMobile(employee.getMobile());</span>
+<span class="fc" id="L331">        dto.setLocation(employee.getLocation());</span>
+<span class="fc" id="L332">        dto.setDateOfJoining(employee.getDateOfJoining());</span>
+<span class="fc" id="L333">        dto.setCreatedTime(employee.getCreatedTime());</span>
+<span class="fc" id="L334">        dto.setUpdatedTime(employee.getUpdatedTime());</span>
+<span class="fc" id="L335">        return dto;</span>
+    }
+
+    public ManagerChangeResponseDTO changeEmployeeManager(String employeeId, String newManagerId) {
+<span class="fc" id="L339">        Optional&lt;EmployeeModel&gt; employeeOpt = employeeRepository.findById(employeeId);</span>
+<span class="pc bpc" id="L340" title="1 of 2 branches missed.">        if (!employeeOpt.isPresent()) {</span>
+<span class="nc" id="L341">            throw new IllegalArgumentException(&quot;Employee with id &quot; + employeeId + &quot; does not exist.&quot;);</span>
+        }
+
+<span class="fc" id="L344">        EmployeeModel employee = employeeOpt.get();</span>
+<span class="fc" id="L345">        String name = employee.getName();</span>
+<span class="fc" id="L346">        String oldManagerId = employee.getManagerId();</span>
+
+<span class="fc" id="L348">        String oldManagerName = null;</span>
+<span class="fc" id="L349">        String newManagerName = null;</span>
+<span class="fc" id="L350">        String newManagerDepartment = null;</span>
+
+        //cannot assign a manager for an existing manager
+<span class="pc bpc" id="L353" title="1 of 2 branches missed.">        if (!oldManagerId.equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L354">            Optional&lt;ManagerModel&gt; oldManagerOpt = managerRepository.findById(oldManagerId);</span>
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">            if (oldManagerOpt.isPresent()) {</span>
+<span class="fc" id="L356">                oldManagerName = oldManagerOpt.get().getName();</span>
+            }
+<span class="fc" id="L358">        } else {</span>
+<span class="nc" id="L359">            return new ManagerChangeResponseDTO(&quot;Cannot assign manager to another person.&quot;);</span>
+        }
+
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">        if (oldManagerId.equals(newManagerId)) {</span>
+<span class="nc" id="L363">            return new ManagerChangeResponseDTO(</span>
+                    &quot;Employee with id &quot; + employeeId + &quot; is already assigned to manager with id &quot; + newManagerId);
+        }
+        
+        // check if the new manager id is valid
+<span class="fc" id="L368">        Optional&lt;ManagerEmployeeModel&gt; newManagerOption = managerEmployeeRepository.findById(newManagerId);</span>
+<span class="pc bpc" id="L369" title="1 of 2 branches missed.">        if (!newManagerOption.isPresent()) {</span>
+<span class="nc" id="L370">            return new ManagerChangeResponseDTO(&quot;The new Manager Id is invalid&quot;);</span>
+        }
+
+        // Remove from old manager
+<span class="fc" id="L374">        Optional&lt;ManagerEmployeeModel&gt; oldManagerOpt = managerEmployeeRepository.findById(oldManagerId);</span>
+<span class="pc bpc" id="L375" title="1 of 2 branches missed.">        if (oldManagerOpt.isPresent()) {</span>
+<span class="fc" id="L376">            ManagerEmployeeModel oldManager = oldManagerOpt.get();</span>
+<span class="fc" id="L377">            List&lt;EmployeeResponseDTO&gt; oldEmployeeList = oldManager.getEmployeeList();</span>
+<span class="pc" id="L378">            oldEmployeeList.removeIf(e -&gt; e.getId().equals(employeeId));</span>
+<span class="fc" id="L379">            managerEmployeeRepository.save(oldManager);</span>
+        }
+
+        // Add to new manager
+<span class="fc" id="L383">        Optional&lt;ManagerEmployeeModel&gt; newManagerOpt = managerEmployeeRepository.findById(newManagerId);</span>
+<span class="pc bpc" id="L384" title="1 of 2 branches missed.">        if (newManagerOpt.isPresent()) {</span>
+<span class="fc" id="L385">            ManagerEmployeeModel newManager = newManagerOpt.get();</span>
+<span class="fc" id="L386">            List&lt;EmployeeResponseDTO&gt; newEmployeeList = newManager.getEmployeeList();</span>
+
+<span class="fc" id="L388">            newManagerName = newManager.getName();</span>
+<span class="fc" id="L389">            newManagerDepartment = newManager.getDepartment();</span>
+
+            // Update employee's details only if the manager is present
+<span class="fc" id="L392">            employee.setManagerId(newManagerId);</span>
+<span class="fc" id="L393">            employee.setdepartment(newManagerDepartment);</span>
+<span class="fc" id="L394">            employee.setUpdatedTime(LocalDateTime.now());</span>
+<span class="fc" id="L395">            employeeRepository.save(employee);</span>
+
+<span class="fc" id="L397">            newEmployeeList.add(convertToDTO(employee));</span>
+<span class="fc" id="L398">            newManager.setEmployeeList(newEmployeeList);</span>
+<span class="fc" id="L399">            managerEmployeeRepository.save(newManager);</span>
+        }
+
+<span class="fc" id="L402">        return new ManagerChangeResponseDTO(String.format(&quot;%s's manager has been successfully changed from &quot; + oldManagerName + &quot; to %s&quot;,</span>
+                name, newManagerName));
+    }
+
+    public ResponseMessage deleteEmployee(String id) {
+        // Check if the employee exists
+<span class="fc bfc" id="L408" title="All 2 branches covered.">        if (!employeeRepository.existsById(id)) {</span>
+<span class="fc" id="L409">            throw new IllegalArgumentException(&quot;Employee with id &quot; + id + &quot; does not exist.&quot;);</span>
+        }
+
+        // Find the employee
+<span class="fc" id="L413">        EmployeeModel employeeToDelete = employeeRepository.findById(id).orElseThrow(</span>
+<span class="nc" id="L414">                () -&gt; new IllegalArgumentException(&quot;Employee with id &quot; + id + &quot; does not exist.&quot;));</span>
+<span class="fc" id="L415">        String name = employeeToDelete.getName();</span>
+<span class="fc" id="L416">        String managerId = employeeToDelete.getManagerId();</span>
+
+        // Check if the employee to delete is a manager
+<span class="fc" id="L419">        Optional&lt;ManagerEmployeeModel&gt; managerOpt = managerEmployeeRepository.findById(id);</span>
+<span class="fc bfc" id="L420" title="All 2 branches covered.">        if (managerOpt.isPresent()) {</span>
+<span class="fc" id="L421">            ManagerEmployeeModel manager = managerOpt.get();</span>
+<span class="fc" id="L422">            List&lt;EmployeeResponseDTO&gt; employeeList = manager.getEmployeeList();</span>
+
+            // If the manager has employees, don't delete
+<span class="fc bfc" id="L425" title="All 2 branches covered.">            if (!employeeList.isEmpty()) {</span>
+<span class="fc" id="L426">                throw new IllegalArgumentException(</span>
+                        &quot;Cannot delete manager with id &quot; + id + &quot; because they have employees to manage.&quot;);
+            }
+
+            // If the manager has no employees, delete the manager from both repositories
+<span class="fc" id="L431">            String dep = manager.getDepartment();</span>
+<span class="fc" id="L432">            managerRepository.deleteById(id);</span>
+<span class="fc" id="L433">            managerEmployeeRepository.deleteById(id);</span>
+
+            // delete manager from department
+<span class="fc" id="L436">            Optional&lt;DepartmentModel&gt; departmentOpt = departmentRepository.findByDepartmentName(dep);</span>
+<span class="pc bpc" id="L437" title="1 of 2 branches missed.">            if (departmentOpt.isPresent()) {</span>
+<span class="fc" id="L438">                DepartmentModel department = departmentOpt.get();</span>
+<span class="fc" id="L439">                department.setManagerName(null);</span>
+<span class="fc" id="L440">                departmentRepository.save(department);</span>
+            }
+        }
+
+        // Delete the employee from the employee repository
+<span class="fc" id="L445">        employeeRepository.deleteById(id);</span>
+
+        // If the employee had a manager, update the manager's employee list
+<span class="pc bpc" id="L448" title="1 of 4 branches missed.">        if (managerId != null &amp;&amp; !managerId.equals(&quot;0&quot;)) {</span>
+<span class="fc" id="L449">            Optional&lt;ManagerEmployeeModel&gt; employeeManagerOpt = managerEmployeeRepository.findById(managerId);</span>
+<span class="pc bpc" id="L450" title="1 of 2 branches missed.">            if (employeeManagerOpt.isPresent()) {</span>
+<span class="fc" id="L451">                ManagerEmployeeModel employeeManager = employeeManagerOpt.get();</span>
+<span class="fc" id="L452">                List&lt;EmployeeResponseDTO&gt; employeeList = employeeManager.getEmployeeList();</span>
+
+                // Remove the employee from the manager's list
+<span class="pc" id="L455">                employeeList.removeIf(e -&gt; e.getId().equals(id));</span>
+<span class="fc" id="L456">                employeeManager.setEmployeeList(employeeList);</span>
+<span class="fc" id="L457">                managerEmployeeRepository.save(employeeManager);</span>
+            }
+        }
+
+<span class="fc" id="L461">        ResponseMessage responseMessage = new ResponseMessage();</span>
+<span class="fc" id="L462">        responseMessage.setMessage(&quot;Successfully deleted &quot; + name + &quot; from the organization.&quot;);</span>
+<span class="fc" id="L463">        return responseMessage;</span>
+    }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

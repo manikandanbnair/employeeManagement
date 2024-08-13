@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DepartmentModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">API</a> &gt; <a href="index.source.html" class="el_package">com.Employee.API.models</a> &gt; <span class="el_source">DepartmentModel.java</span></div><h1>DepartmentModel.java</h1><pre class="source lang-java linenums">package com.Employee.API.models;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection=&quot;department&quot;)
+<span class="fc" id="L7">public class DepartmentModel {</span>
+    @Id
+    private String id;
+    private String departmentName;
+    private String managerName;
+    
+    public String getDepId() {
+<span class="fc" id="L14">        return id;</span>
+    }
+    public void setDepId(String depId) {
+<span class="fc" id="L17">        this.id = depId;</span>
+<span class="fc" id="L18">    }</span>
+    public String getDepartmentName() {
+<span class="fc" id="L20">        return departmentName;</span>
+    }
+    public void setDepartmentName(String departmentName) {
+<span class="fc" id="L23">        this.departmentName = departmentName;</span>
+<span class="fc" id="L24">    }</span>
+    public String getManagerName() {
+<span class="fc" id="L26">        return managerName;</span>
+    }
+    public void setManagerName(String managerName) {
+<span class="fc" id="L29">        this.managerName = managerName;</span>
+<span class="fc" id="L30">    }</span>
+
+    
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>

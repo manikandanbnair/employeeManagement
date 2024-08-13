@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EmployeeModel.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">API</a> &gt; <a href="index.source.html" class="el_package">com.Employee.API.models</a> &gt; <span class="el_source">EmployeeModel.java</span></div><h1>EmployeeModel.java</h1><pre class="source lang-java linenums">package com.Employee.API.models;
+
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDateTime;
+
+@Document(collection = &quot;employee&quot;)
+<span class="fc" id="L11">public class EmployeeModel {</span>
+
+    @Id
+    private String id;
+    private String name;
+    private String designation;
+    private String email;
+    @Field(&quot;department&quot;)
+    private String department;
+    private String mobile;
+    private String location;
+    private String managerId;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss.SSS&quot;)
+    private LocalDateTime dateOfJoining;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss.SSS&quot;)
+    private LocalDateTime createdTime;
+
+    @JsonFormat(pattern = &quot;yyyy-MM-dd'T'HH:mm:ss.SSS&quot;)
+    private LocalDateTime updatedTime;
+
+    public String getId() {
+<span class="fc" id="L34">        return id;</span>
+    }
+
+    public void setId(String id) {
+<span class="fc" id="L38">        this.id = id;</span>
+<span class="fc" id="L39">    }</span>
+
+    public String getName() {
+<span class="fc" id="L42">        return name;</span>
+    }
+
+    public void setName(String name) {
+<span class="fc" id="L46">        this.name = name;</span>
+<span class="fc" id="L47">    }</span>
+
+    public String getDesignation() {
+<span class="fc" id="L50">        return designation;</span>
+    }
+
+    public void setDesignation(String designation) {
+<span class="fc" id="L54">        this.designation = designation;</span>
+<span class="fc" id="L55">    }</span>
+
+    public String getEmail() {
+<span class="fc" id="L58">        return email;</span>
+    }
+
+    public void setEmail(String email) {
+<span class="fc" id="L62">        this.email = email;</span>
+<span class="fc" id="L63">    }</span>
+
+    public String getdepartment() {
+<span class="fc" id="L66">        return department;</span>
+    }
+
+    public void setdepartment(String department) {
+<span class="fc" id="L70">        this.department = department;</span>
+<span class="fc" id="L71">    }</span>
+
+    public String getMobile() {
+<span class="fc" id="L74">        return mobile;</span>
+    }
+
+    public void setMobile(String mobile) {
+<span class="fc" id="L78">        this.mobile = mobile;</span>
+<span class="fc" id="L79">    }</span>
+
+    public String getLocation() {
+<span class="fc" id="L82">        return location;</span>
+    }
+
+    public void setLocation(String location) {
+<span class="fc" id="L86">        this.location = location;</span>
+<span class="fc" id="L87">    }</span>
+
+    public String getManagerId() {
+<span class="fc" id="L90">        return managerId;</span>
+    }
+
+    public void setManagerId(String managerId) {
+<span class="fc" id="L94">        this.managerId = managerId;</span>
+<span class="fc" id="L95">    }</span>
+
+    public LocalDateTime getDateOfJoining() {
+<span class="fc" id="L98">        return dateOfJoining;</span>
+    }
+
+    public void setDateOfJoining(LocalDateTime dateOfJoining) {
+<span class="fc" id="L102">        this.dateOfJoining = dateOfJoining;</span>
+<span class="fc" id="L103">    }</span>
+
+    public LocalDateTime getCreatedTime() {
+<span class="fc" id="L106">        return createdTime;</span>
+    }
+
+    public void setCreatedTime(LocalDateTime createdTime) {
+<span class="fc" id="L110">        this.createdTime = createdTime;</span>
+<span class="fc" id="L111">    }</span>
+
+    public LocalDateTime getUpdatedTime() {
+<span class="fc" id="L114">        return updatedTime;</span>
+    }
+
+    public void setUpdatedTime(LocalDateTime updatedTime) {
+<span class="fc" id="L118">        this.updatedTime = updatedTime;</span>
+<span class="fc" id="L119">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L123">        return &quot;EmployeeModel [id=&quot; + id + &quot;, name=&quot; + name + &quot;, designation=&quot; + designation + &quot;, email=&quot; + email</span>
+                + &quot;, department=&quot; + department + &quot;, mobile=&quot; + mobile + &quot;, location=&quot; + location + &quot;, managerId=&quot;
+                + managerId + &quot;, dateOfJoining=&quot; + dateOfJoining + &quot;, createdTime=&quot; + createdTime + &quot;, updatedTime=&quot;
+                + updatedTime + &quot;]&quot;;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.8.202204050719</span></div></body></html>
