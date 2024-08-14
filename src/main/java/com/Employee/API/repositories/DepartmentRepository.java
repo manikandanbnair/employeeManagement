@@ -14,4 +14,5 @@ public interface DepartmentRepository extends MongoRepository<DepartmentModel, S
 
     Optional<DepartmentModel> findByDepartmentName(String departmentName);
     List<DepartmentModel> findAll(Sort Sort);
+  
 }

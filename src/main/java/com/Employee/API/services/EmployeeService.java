@@ -147,10 +147,10 @@ public class EmployeeService {
     }
 
     // creating a new manager if a manager is not appointed to a department
-    public void handleEmployeeAsManager(EmployeeModel newManager, String department) {
+    public void handleEmployeeAsManager(EmployeeModel newManager, String departmentName) {
 
         // Check if the department exists
-        Optional<DepartmentModel> departmentOpt = departmentRepository.findByDepartmentName(department);
+        Optional<DepartmentModel> departmentOpt = departmentRepository.findByDepartmentName(departmentName);
         if (departmentOpt.isPresent()) {
             DepartmentModel dept = departmentOpt.get();
             String currentManagerName = dept.getManagerName();
@@ -164,7 +164,7 @@ public class EmployeeService {
                 ManagerEmployeeModel newManagerEmployee = new ManagerEmployeeModel();
                 newManagerEmployee.setId(newManager.getId());
                 newManagerEmployee.setName(newManager.getName());
-                newManagerEmployee.setDepartment(department);
+                newManagerEmployee.setDepartment(departmentName);
                 newManagerEmployee.setEmployeeList(new ArrayList<>());
                 managerEmployeeRepository.save(newManagerEmployee);
 
@@ -176,16 +176,16 @@ public class EmployeeService {
                 ManagerModel newManagerModel = new ManagerModel();
                 newManagerModel.setId(newManager.getId());
                 newManagerModel.setName(newManager.getName());
-                newManagerModel.setDepartment(department);
+                newManagerModel.setDepartment(departmentName);
                 managerRepository.save(newManagerModel);
 
             }
         } else {
-            throw new IllegalArgumentException("Department " + department + " does not exist.");
+            throw new IllegalArgumentException("Department " + departmentName + " does not exist.");
         }
     }
 
-    private void updateManagerEmployeeList(ManagerEmployeeModel manager, EmployeeModel employee) {
+    public void updateManagerEmployeeList(ManagerEmployeeModel manager, EmployeeModel employee) {
         List<EmployeeResponseDTO> employeeList = manager.getEmployeeList();
         if (employeeList == null) {
             employeeList = new ArrayList<>();
@@ -236,7 +236,8 @@ public class EmployeeService {
                 e.getMessage();
             }
 
-        } // case 2
+        } 
+        // case 2
         else if (managerId != null) {
 
             Optional<ManagerEmployeeModel> managerOpt = managerEmployeeRepository.findById(managerId);
@@ -308,7 +309,7 @@ public class EmployeeService {
         return responseDTO;
     }
 
-    private int calculateYearsOfExperience(LocalDateTime dateOfJoining) {
+    public int calculateYearsOfExperience(LocalDateTime dateOfJoining) {
         if (dateOfJoining == null) {
             return 0;
         }

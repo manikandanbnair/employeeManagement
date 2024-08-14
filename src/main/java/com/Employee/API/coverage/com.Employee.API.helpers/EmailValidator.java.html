@@ -8,8 +8,8 @@ import java.util.regex.Pattern;
 <span class="fc" id="L8">    private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);</span>
 
     public static boolean isValidEmail(String email) {
-<span class="pc bpc" id="L11" title="2 of 4 branches missed.">        if (email == null || email.isEmpty()) {</span>
-<span class="nc" id="L12">            return false;</span>
+<span class="fc bfc" id="L11" title="All 4 branches covered.">        if (email == null || email.isEmpty()) {</span>
+<span class="fc" id="L12">            return false;</span>
         }
 
 <span class="fc" id="L15">        Matcher matcher = EMAIL_PATTERN.matcher(email);</span>

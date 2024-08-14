@@ -1,9 +1,11 @@
 package com.Employee.API;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -28,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.Employee.API.controllers.EmployeeController;
+import com.Employee.API.helpers.EmailValidator;
 import com.Employee.API.models.DepartmentModel;
 import com.Employee.API.models.EmployeeModel;
 import com.Employee.API.models.ManagerEmployeeModel;
@@ -64,8 +67,12 @@ class ApiApplicationTests {
 	@InjectMocks
 	private EmployeeController employeeController;
 
+	@Mock
 	private EmployeeModel employee;
+
+	@Mock
 	private ManagerEmployeeModel managerEmployee;
+
 	private DepartmentModel department;
 
 	private MockMvc mockMvc;
@@ -73,11 +80,16 @@ class ApiApplicationTests {
 	@BeforeEach
 
 	void setUp() {
+		
+
 
 		MockitoAnnotations.openMocks(this);
 
 
-	 department = new DepartmentModel();
+	    department = new DepartmentModel();
+		department.setDepId("d1");
+		department.setDepartmentName("sales");
+		department.setManagerName(null);
 		// Initialize EmployeeModel
 		employee = new EmployeeModel();
 		employee.setId("1");
@@ -99,8 +111,8 @@ class ApiApplicationTests {
 		managerEmployee.setEmployeeList(new ArrayList<>());
 
 		// Mock repository behavior
-		when(employeeRepository.existsById("1001")).thenReturn(true); // This should be true
-		when(employeeRepository.existsById("1")).thenReturn(true); // Mock for new employee
+		when(employeeRepository.existsById("1001")).thenReturn(true); 
+		when(employeeRepository.existsById("1")).thenReturn(true); 
 		when(managerEmployeeRepository.findById("1001")).thenReturn(Optional.of(managerEmployee));
 
 		mockMvc = MockMvcBuilders.standaloneSetup(employeeController).build();
@@ -1012,5 +1024,255 @@ void testGetUpdatedTime() {
 	assertEquals(LocalDateTime.of(2024, 1, 2, 10, 0), employee.getUpdatedTime());
 }
 
+
+
+@Test
+    void testGettersAndSetters() {
+        // Arrange
+        EmployeeResponseDTO employee = new EmployeeResponseDTO();
+
+        String id = "123";
+        String name = "John Doe";
+        String designation = "Software Engineer";
+        String email = "john.doe@example.com";
+        String department = "IT";
+        String mobile = "1234567890";
+        String location = "New York";
+        LocalDateTime dateOfJoining = LocalDateTime.of(2022, 1, 15, 10, 0, 0);
+        LocalDateTime createdTime = LocalDateTime.of(2022, 1, 1, 12, 0, 0);
+        LocalDateTime updatedTime = LocalDateTime.of(2023, 1, 1, 12, 0, 0);
+
+       
+        employee.setId(id);
+        employee.setName(name);
+        employee.setDesignation(designation);
+        employee.setEmail(email);
+        employee.setdepartment(department);
+        employee.setMobile(mobile);
+        employee.setLocation(location);
+        employee.setDateOfJoining(dateOfJoining);
+        employee.setCreatedTime(createdTime);
+        employee.setUpdatedTime(updatedTime);
+
+        assertEquals(id, employee.getId());
+        assertEquals(name, employee.getName());
+        assertEquals(designation, employee.getDesignation());
+        assertEquals(email, employee.getEmail());
+        assertEquals(department, employee.getdepartment());
+        assertEquals(mobile, employee.getMobile());
+        assertEquals(location, employee.getLocation());
+        assertEquals(dateOfJoining, employee.getDateOfJoining());
+        assertEquals(createdTime, employee.getCreatedTime());
+        assertEquals(updatedTime, employee.getUpdatedTime());
+    }
+
+
+	@Test
+    void testDefaultConstructor() {
+        ManagerChangeResponseDTO responseDTO = new ManagerChangeResponseDTO();
+
+        assertNull(responseDTO.getMessage());
+    }
+
+    @Test
+    void testParameterizedConstructor() {
+        String message = "Manager change successful";
+
+        ManagerChangeResponseDTO responseDTO = new ManagerChangeResponseDTO(message);
+
+        assertEquals(message, responseDTO.getMessage());
+    }
+
+    @Test
+    void testSetMessage() {
+        ManagerChangeResponseDTO responseDTO = new ManagerChangeResponseDTO();
+        String message = "Manager change failed";
+
+        responseDTO.setMessage(message);
+
+        assertEquals(message, responseDTO.getMessage());
+    }
+
+
+	@Test
+    void testToString() {
+        EmployeeModel employee = new EmployeeModel();
+
+        String id = "123";
+        String name = "John Doe";
+        String designation = "Software Engineer";
+        String email = "john.doe@example.com";
+        String department = "IT";
+        String mobile = "1234567890";
+        String location = "New York";
+        String managerId = "456";
+        LocalDateTime dateOfJoining = LocalDateTime.of(2022, 1, 15, 10, 0, 0);
+        LocalDateTime createdTime = LocalDateTime.of(2022, 1, 1, 12, 0, 0);
+        LocalDateTime updatedTime = LocalDateTime.of(2023, 1, 1, 12, 0, 0);
+
+        employee.setId(id);
+        employee.setName(name);
+        employee.setDesignation(designation);
+        employee.setEmail(email);
+        employee.setdepartment(department);
+        employee.setMobile(mobile);
+        employee.setLocation(location);
+        employee.setManagerId(managerId); // Assuming you have a setter for managerId
+        employee.setDateOfJoining(dateOfJoining);
+        employee.setCreatedTime(createdTime);
+        employee.setUpdatedTime(updatedTime);
+
+        String expectedToString = "EmployeeModel [id=" + id + ", name=" + name + ", designation=" + designation + 
+                ", email=" + email + ", department=" + department + ", mobile=" + mobile + 
+                ", location=" + location + ", managerId=" + managerId + 
+                ", dateOfJoining=" + dateOfJoining + ", createdTime=" + createdTime + 
+                ", updatedTime=" + updatedTime + "]";
+
+        String actualToString = employee.toString();
+
+        assertEquals(expectedToString, actualToString);
+    }
+
+
+
+	@Test
+    void testManagerIdEqualsZeroAndDesignationIsAccountManager() throws Exception {
+		employee = new EmployeeModel();
+        employee.setId("2");
+        employee.setName("John Doe");
+        employee.setDesignation("Account Manager");
+        employee.setEmail("john.doe@example.com");
+        employee.setdepartment("sales");
+        employee.setMobile("1234567890");
+        employee.setLocation("New York");
+        employee.setManagerId("0");
+        employee.setDateOfJoining(LocalDateTime.of(2022, 1, 15, 10, 0, 0));
+        employee.setCreatedTime(LocalDateTime.of(2022, 1, 1, 12, 0, 0));
+        employee.setUpdatedTime(LocalDateTime.of(2023, 1, 1, 12, 0, 0));
+      
+        when(employeeRepository.save(employee)).thenReturn(employee);
+		when(departmentRepository.findByDepartmentName("sales")).thenReturn(Optional.of(department));
+        EmployeeModel savedEmployee = employeeService.addEmployee(employee);
+
+        // Assert
+        verify(employeeRepository, times(1)).save(employee);
+        assertEquals(employee, savedEmployee);
+    }
+
+	@Test
+    void testValidEmail() {
+        assertTrue(EmailValidator.isValidEmail("test@example.com"));
+        assertTrue(EmailValidator.isValidEmail("user.name+tag+sorting@example.com"));
+        assertTrue(EmailValidator.isValidEmail("user_name@example.co.uk"));
+    }
+
+    @Test
+    void testInvalidEmail() {
+        assertFalse(EmailValidator.isValidEmail("plainaddress"));
+        assertFalse(EmailValidator.isValidEmail("user@.com"));
+        assertFalse(EmailValidator.isValidEmail("@example.com"));
+        assertFalse(EmailValidator.isValidEmail("user@.com"));
+        assertFalse(EmailValidator.isValidEmail("user@com"));
+    }
+
+	@Test
+    void testNullEmail() {
+        assertFalse(EmailValidator.isValidEmail(null));
+    }
+
+	@Test
+    void testEmptyEmail() {
+    
+        assertFalse(EmailValidator.isValidEmail(""));
+    }
+
+	@Test
+    void testManagerIdNotFound() {
+    
+    String managerId = "100000";
+    Integer minYearsOfExperience = 5;
+
+    when(managerEmployeeRepository.findById(managerId)).thenReturn(Optional.empty());
+
+    ResponseDTO result = employeeService.managerWithExperience(managerId, minYearsOfExperience);
+
+    assertEquals("Invalid Manager ID", result.getMessage());
+    }
+
+	@Test
+    void testCalculateYearsOfExperienceWhenDateOfJoiningIsNull() {
+        LocalDateTime dateOfJoining = null;
+        int yearsOfExperience = employeeService.calculateYearsOfExperience(dateOfJoining);
+        assertEquals(0, yearsOfExperience, "Years of experience should be 0 when date of joining is null.");
+    }
+
+	@Test
+    void testChangeEmployeeManagerWhenEmployeeDoesNotExist() {
+        // Given
+        String employeeId = "123";
+        String newManagerId = "456";
+
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        IllegalArgumentException thrownException = assertThrows(IllegalArgumentException.class, () -> {
+            employeeService.changeEmployeeManager(employeeId, newManagerId);
+        });
+
+        assertEquals("Employee with id 123 does not exist.", thrownException.getMessage());
+    }
+
+	@Test
+    void testCannotAssignManagerToAnotherPerson() {
+        String employeeId = "123";
+        String newManagerId = "456";
+        EmployeeModel employee = new EmployeeModel();
+        employee.setId(employeeId);
+        employee.setManagerId("0");
+
+		EmployeeModel employee1 = new EmployeeModel();
+		employee1.setId(newManagerId);
+        employee1.setManagerId("0");
+
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+		when(managerEmployeeRepository.findById(newManagerId)).thenReturn(Optional.of(managerEmployee));
+
+        ManagerChangeResponseDTO response = employeeService.changeEmployeeManager(employeeId, newManagerId);
+
+        assertEquals("Cannot assign manager to another person.", response.getMessage());
+    }
+
+	@Test
+    void testEmployeeAlreadyAssignedToSameManager() {
+        String employeeId = "123";
+        String newManagerId = "456";
+        EmployeeModel employee = new EmployeeModel();
+        employee.setId(employeeId);
+        employee.setManagerId(newManagerId);
+
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+
+        ManagerChangeResponseDTO response = employeeService.changeEmployeeManager(employeeId, newManagerId);
+
+        assertEquals("Employee with id 123 is already assigned to manager with id 456", response.getMessage());
+    }
+
+	@Test
+    void testNewManagerIdIsInvalid() {
+        String employeeId = "123";
+        String newManagerId = "999"; // Invalid manager ID
+        EmployeeModel employee = new EmployeeModel();
+        employee.setId(employeeId);
+        employee.setManagerId("456");
+
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(managerEmployeeRepository.findById(newManagerId)).thenReturn(Optional.empty());
+
+        ManagerChangeResponseDTO response = employeeService.changeEmployeeManager(employeeId, newManagerId);
+
+        assertEquals("The new Manager Id is invalid", response.getMessage());
+    }
+
+	
 
 }
