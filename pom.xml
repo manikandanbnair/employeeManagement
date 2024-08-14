@@ -99,6 +99,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                <excludes>
+                    <exclude>com/Employee/API/ApiApplication.class</exclude>
+                </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

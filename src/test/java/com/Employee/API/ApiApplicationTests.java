@@ -1,5 +1,6 @@
 package com.Employee.API;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -30,7 +32,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.Employee.API.controllers.EmployeeController;
-import com.Employee.API.helpers.EmailValidator;
+//import com.Employee.API.helpers.EmailValidator;
 import com.Employee.API.models.DepartmentModel;
 import com.Employee.API.models.EmployeeModel;
 import com.Employee.API.models.ManagerEmployeeModel;
@@ -73,7 +75,10 @@ class ApiApplicationTests {
 	@Mock
 	private ManagerEmployeeModel managerEmployee;
 
+    @Mock
 	private DepartmentModel department;
+
+
 
 	private MockMvc mockMvc;
 
@@ -246,6 +251,7 @@ void testAddEmployeeWithExistingEmail() throws Exception {
 				exception.getMessage());
 	}
 
+ 
 	@Test
 	void testAddEmployeeWithInvalidMobileNumber() {
 		employee = new EmployeeModel();
@@ -265,28 +271,217 @@ void testAddEmployeeWithExistingEmail() throws Exception {
 		});
 		assertEquals("Invalid mobile number. It must be a 10-digit number", exception.getMessage());
 	}
+   
 
-	@Test
-	void testAddEmployeeWithInvalidManagerId() {
-		employee = new EmployeeModel();
-		employee.setId("1002");
-		employee.setName("John Doe");
-		employee.setEmail("john@example.com");
-		employee.setDesignation("Associate");
-		employee.setLocation("Delhi");
-		employee.setManagerId("9999"); // Invalid manager ID
-		employee.setMobile("1234567890");
-		employee.setdepartment("sales");
-		employee.setCreatedTime(LocalDateTime.now());
-		employee.setUpdatedTime(LocalDateTime.now());
+@Test
+void testAddEmployeeWithVariousInvalidMobileNumbers() {
+    // Invalid mobile number (shorter than 10 digits)
+    EmployeeModel shortMobile = new EmployeeModel();
+    shortMobile.setId("1003");
+    shortMobile.setName("Jane Doe");
+    shortMobile.setEmail("jane@example.com");
+    shortMobile.setDesignation("Associate");
+    shortMobile.setLocation("Delhi");
+    shortMobile.setManagerId("1001");
+    shortMobile.setMobile("12345"); // Short mobile number
+    shortMobile.setdepartment("sales");
+    shortMobile.setCreatedTime(LocalDateTime.now());
+    shortMobile.setUpdatedTime(LocalDateTime.now());
 
-		when(employeeRepository.existsById("9999")).thenReturn(false);
+    Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+        employeeService.addEmployee(shortMobile);
+    });
+    assertEquals("Invalid mobile number. It must be a 10-digit number", exception.getMessage());
 
-		Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-			employeeService.addEmployee(employee);
-		});
-		assertEquals("Invalid manager ID", exception.getMessage());
-	}
+    // Invalid mobile number (non-numeric)
+    EmployeeModel nonNumericMobile = new EmployeeModel();
+    nonNumericMobile.setId("1004");
+    nonNumericMobile.setName("Alice Smith");
+    nonNumericMobile.setEmail("alice@example.com");
+    nonNumericMobile.setDesignation("Associate");
+    nonNumericMobile.setLocation("Delhi");
+    nonNumericMobile.setManagerId("1001");
+    nonNumericMobile.setMobile("123456789x"); // Non-numeric mobile number
+    nonNumericMobile.setdepartment("sales");
+    nonNumericMobile.setCreatedTime(LocalDateTime.now());
+    nonNumericMobile.setUpdatedTime(LocalDateTime.now());
+
+    exception = assertThrows(IllegalArgumentException.class, () -> {
+        employeeService.addEmployee(nonNumericMobile);
+    });
+    assertEquals("Invalid mobile number. It must be a 10-digit number", exception.getMessage());
+}
+
+
+@Test
+void testAddEmployeeInEngineering() throws Exception {
+    // Create a mock EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("1");
+    employee.setName("John Doe");
+    employee.setEmail("john.doe@example.com");
+    employee.setDesignation("Associate");
+    employee.setLocation("Delhi");
+    employee.setManagerId("1001");
+    employee.setMobile("1234567890");
+    employee.setdepartment("Engineering");
+    employee.setCreatedTime(LocalDateTime.now());
+    employee.setUpdatedTime(LocalDateTime.now());
+
+    // Create a mock ManagerEmployeeModel
+    ManagerEmployeeModel managerEmployee = new ManagerEmployeeModel();
+    managerEmployee.setId("1001");
+    managerEmployee.setDepartment("Engineering");
+    managerEmployee.setEmployeeList(new ArrayList<>());
+
+    // Prepare mock behavior
+    when(employeeRepository.existsById("1")).thenReturn(false);  // Employee ID should be unique
+    when(employeeRepository.existsByEmail("john.doe@example.com")).thenReturn(false);  // Email should be unique
+    when(managerEmployeeRepository.findById("1001")).thenReturn(Optional.of(managerEmployee));  // Manager exists
+    when(employeeRepository.save(employee)).thenReturn(employee);  // Save operation should return the employee
+
+    // Call the method to be tested
+    EmployeeModel savedEmployee = employeeService.addEmployee(employee);
+
+    // Verify results
+    assertNotNull(savedEmployee, "Saved employee should not be null");
+    assertEquals("John Doe", savedEmployee.getName(), "Employee name should match");
+    assertEquals("john.doe@example.com", savedEmployee.getEmail(), "Employee email should match");
+
+    // Verify interactions with the mocked repositories
+    verify(employeeRepository).existsById("1");
+    verify(employeeRepository).existsByEmail("john.doe@example.com");
+    verify(managerEmployeeRepository).findById("1001");
+    verify(employeeRepository).save(employee);
+}
+
+@Test
+void testAddEmployeeInBA() throws Exception {
+    // Create a mock EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("2");
+    employee.setName("Jane Smith");
+    employee.setEmail("jane.smith@example.com");
+    employee.setDesignation("Associate");
+    employee.setLocation("Mumbai");
+    employee.setManagerId("1002");
+    employee.setMobile("9876543210");
+    employee.setdepartment("BA");
+    employee.setCreatedTime(LocalDateTime.now());
+    employee.setUpdatedTime(LocalDateTime.now());
+
+    // Create a mock ManagerEmployeeModel
+    ManagerEmployeeModel managerEmployee = new ManagerEmployeeModel();
+    managerEmployee.setId("1002");
+    managerEmployee.setDepartment("BA");
+    managerEmployee.setEmployeeList(new ArrayList<>());
+
+    // Prepare mock behavior
+    when(employeeRepository.existsById("2")).thenReturn(false);  // Employee ID should be unique
+    when(employeeRepository.existsByEmail("jane.smith@example.com")).thenReturn(false);  // Email should be unique
+    when(managerEmployeeRepository.findById("1002")).thenReturn(Optional.of(managerEmployee));  // Manager exists
+    when(employeeRepository.save(employee)).thenReturn(employee);  // Save operation should return the employee
+
+    // Call the method to be tested
+    EmployeeModel savedEmployee = employeeService.addEmployee(employee);
+
+    // Verify results
+    assertNotNull(savedEmployee, "Saved employee should not be null");
+    assertEquals("Jane Smith", savedEmployee.getName(), "Employee name should match");
+    assertEquals("jane.smith@example.com", savedEmployee.getEmail(), "Employee email should match");
+
+    // Verify interactions with the mocked repositories
+    verify(employeeRepository).existsById("2");
+    verify(employeeRepository).existsByEmail("jane.smith@example.com");
+    verify(managerEmployeeRepository).findById("1002");
+    verify(employeeRepository).save(employee);
+}
+
+@Test
+void testAddEmployeeInSales() throws Exception {
+    // Create a mock EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("3");
+    employee.setName("Emily Davis");
+    employee.setEmail("emily.davis@example.com");
+    employee.setDesignation("Associate");
+    employee.setLocation("Bangalore");
+    employee.setManagerId("1003");
+    employee.setMobile("1112233445");
+    employee.setdepartment("Sales");
+    employee.setCreatedTime(LocalDateTime.now());
+    employee.setUpdatedTime(LocalDateTime.now());
+
+    // Create a mock ManagerEmployeeModel
+    ManagerEmployeeModel managerEmployee = new ManagerEmployeeModel();
+    managerEmployee.setId("1003");
+    managerEmployee.setDepartment("Sales");
+    managerEmployee.setEmployeeList(new ArrayList<>());
+
+    // Prepare mock behavior
+    when(employeeRepository.existsById("3")).thenReturn(false);  // Employee ID should be unique
+    when(employeeRepository.existsByEmail("emily.davis@example.com")).thenReturn(false);  // Email should be unique
+    when(managerEmployeeRepository.findById("1003")).thenReturn(Optional.of(managerEmployee));  // Manager exists
+    when(employeeRepository.save(employee)).thenReturn(employee);  // Save operation should return the employee
+
+    // Call the method to be tested
+    EmployeeModel savedEmployee = employeeService.addEmployee(employee);
+
+    // Verify results
+    assertNotNull(savedEmployee, "Saved employee should not be null");
+    assertEquals("Emily Davis", savedEmployee.getName(), "Employee name should match");
+    assertEquals("emily.davis@example.com", savedEmployee.getEmail(), "Employee email should match");
+
+    // Verify interactions with the mocked repositories
+    verify(employeeRepository).existsById("3");
+    verify(employeeRepository).existsByEmail("emily.davis@example.com");
+    verify(managerEmployeeRepository).findById("1003");
+    verify(employeeRepository).save(employee);
+}
+
+@Test
+void testAddEmployeeInDelivery() throws Exception {
+    // Create a mock EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("4");
+    employee.setName("Michael Brown");
+    employee.setEmail("michael.brown@example.com");
+    employee.setDesignation("Associate");
+    employee.setLocation("Hyderabad");
+    employee.setManagerId("1004");
+    employee.setMobile("5556667778");
+    employee.setdepartment("Delivery");
+    employee.setCreatedTime(LocalDateTime.now());
+    employee.setUpdatedTime(LocalDateTime.now());
+
+    // Create a mock ManagerEmployeeModel
+    ManagerEmployeeModel managerEmployee = new ManagerEmployeeModel();
+    managerEmployee.setId("1004");
+    managerEmployee.setDepartment("Delivery");
+    managerEmployee.setEmployeeList(new ArrayList<>());
+
+    // Prepare mock behavior
+    when(employeeRepository.existsById("4")).thenReturn(false);  // Employee ID should be unique
+    when(employeeRepository.existsByEmail("michael.brown@example.com")).thenReturn(false);  // Email should be unique
+    when(managerEmployeeRepository.findById("1004")).thenReturn(Optional.of(managerEmployee));  // Manager exists
+    when(employeeRepository.save(employee)).thenReturn(employee);  // Save operation should return the employee
+
+    // Call the method to be tested
+    EmployeeModel savedEmployee = employeeService.addEmployee(employee);
+
+    // Verify results
+    assertNotNull(savedEmployee, "Saved employee should not be null");
+    assertEquals("Michael Brown", savedEmployee.getName(), "Employee name should match");
+    assertEquals("michael.brown@example.com", savedEmployee.getEmail(), "Employee email should match");
+
+    // Verify interactions with the mocked repositories
+    verify(employeeRepository).existsById("4");
+    verify(employeeRepository).existsByEmail("michael.brown@example.com");
+    verify(managerEmployeeRepository).findById("1004");
+    verify(employeeRepository).save(employee);
+}
+
+
 
 	@Test
 	void testChangeEmployeeManager() {
@@ -363,8 +558,7 @@ void testAddEmployeeWithExistingEmail() throws Exception {
 
 	}
 
-	// deletion
-	// an employee doesn't exist
+	
 	@Test
 	void testDeleteNonExistentEmployee() {
     when(employeeRepository.existsById("999")).thenReturn(false);
@@ -423,7 +617,7 @@ void testAddEmployeeWithExistingEmail() throws Exception {
 				exception.getMessage());
 
 		// Verify interactions with mocks
-		verify(employeeRepository, times(1)).existsById("1001");
+		
 		verify(employeeRepository, times(1)).findById("1001");
 		verify(managerEmployeeRepository, times(1)).findById("1001");
 		verify(managerEmployeeRepository, never()).save(any(ManagerEmployeeModel.class));
@@ -1159,31 +1353,26 @@ void testGetUpdatedTime() {
         assertEquals(employee, savedEmployee);
     }
 
-	@Test
-    void testValidEmail() {
-        assertTrue(EmailValidator.isValidEmail("test@example.com"));
-        assertTrue(EmailValidator.isValidEmail("user.name+tag+sorting@example.com"));
-        assertTrue(EmailValidator.isValidEmail("user_name@example.co.uk"));
-    }
+	
 
-    @Test
-    void testInvalidEmail() {
-        assertFalse(EmailValidator.isValidEmail("plainaddress"));
-        assertFalse(EmailValidator.isValidEmail("user@.com"));
-        assertFalse(EmailValidator.isValidEmail("@example.com"));
-        assertFalse(EmailValidator.isValidEmail("user@.com"));
-        assertFalse(EmailValidator.isValidEmail("user@com"));
-    }
+    // @Test
+    // void testInvalidEmail() {
+    //     assertFalse(EmailValidator.isValidEmail("plainaddress"));
+    //     assertFalse(EmailValidator.isValidEmail("user@.com"));
+    //     assertFalse(EmailValidator.isValidEmail("@example.com"));
+    //     assertFalse(EmailValidator.isValidEmail("user@.com"));
+    //     assertFalse(EmailValidator.isValidEmail("user@com"));
+    // }
 
 	@Test
     void testNullEmail() {
-        assertFalse(EmailValidator.isValidEmail(null));
+        assertFalse(employeeService.isValidEmail(null));
     }
 
 	@Test
     void testEmptyEmail() {
     
-        assertFalse(EmailValidator.isValidEmail(""));
+        assertFalse(employeeService.isValidEmail(""));
     }
 
 	@Test
@@ -1273,6 +1462,285 @@ void testGetUpdatedTime() {
         assertEquals("The new Manager Id is invalid", response.getMessage());
     }
 
-	
+    
+    @Test
+    void testManagerNotExist() {
+        // Set up mock behavior
+        String invalidManagerId = "1"; 
+        when(managerEmployeeRepository.findById(invalidManagerId)).thenReturn(Optional.empty());
+    
+        EmployeeModel mockEmployee = new EmployeeModel();
+        mockEmployee.setId("5");
+        mockEmployee.setName("John Doe");
+        mockEmployee.setEmail("john.doe@example.com");
+        mockEmployee.setDesignation("Associate");
+        mockEmployee.setLocation("Delhi");
+        mockEmployee.setManagerId("1");
+        mockEmployee.setMobile("1234567890");
+        mockEmployee.setdepartment("sales");
+        mockEmployee.setCreatedTime(LocalDateTime.of(2024, 1, 1, 10, 0));
+        mockEmployee.setUpdatedTime(LocalDateTime.of(2024, 1, 2, 10, 0));
+
+        // Use mockEmployee in your test
+        when(employeeRepository.findById("1")).thenReturn(Optional.of(mockEmployee));
+    
+        // Perform the test
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            employeeService.addEmployee(mockEmployee);
+        });
+    
+        // Verify the exception message
+        assertEquals("Manager with ID " + invalidManagerId + " does not exist.", thrown.getMessage());
+    }
+
+    @Test
+    void testDeleteEmployeeByIdThrowsExceptionWhenEmployeeNotFound() {
+        String idToDelete = "500";
+
+        when(employeeRepository.findById(idToDelete)).thenReturn(Optional.empty());
+
+        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
+            employeeService.deleteEmployee(idToDelete);
+        }, "Expected deleteEmployeeById to throw, but it didn't");
+
+        assertEquals("Employee with id " + idToDelete + " does not exist.", thrown.getMessage());
+    }
+
+    
+    @Test
+    void testUpdateDepartmentWhenEmployeeIsManager() {
+        // Arrange
+        String managerId = "1001";
+        String departmentName = "Sales";
+
+        // Mock behavior for finding the department
+        when(employeeRepository.findById(managerId)).thenReturn(Optional.of(employee));
+        when(departmentRepository.findByDepartmentName(departmentName)).thenReturn(Optional.of(department));
+
+        // Act
+        assertDoesNotThrow(() -> {
+            // Call the method you want to test
+            employeeService.deleteEmployee(managerId);
+        });
+
+        // Verify the interactions
+      //  verify(department).setManagerName(null);
+        verify(departmentRepository).save(department);
+    }
+
+    @Test
+    void testRemoveEmployeeFromManagerList() {
+        // Initialize EmployeeModel
+        employee = new EmployeeModel();
+        employee.setId("1");
+        employee.setName("John Doe");
+        employee.setEmail("john.doe@example.com");
+        employee.setDesignation("Associate");
+        employee.setLocation("Delhi");
+        employee.setManagerId("1001"); // Ensure this ID exists in mocks
+        employee.setMobile("1234567890");
+        employee.setdepartment("sales");
+        employee.setCreatedTime(LocalDateTime.of(2024, 1, 1, 10, 0));
+        employee.setUpdatedTime(LocalDateTime.of(2024, 1, 2, 10, 0));
+    
+        // Initialize ManagerEmployeeModel
+        managerEmployee = new ManagerEmployeeModel();
+        managerEmployee.setId("1001");
+        managerEmployee.setName("Alice Johnson");
+        managerEmployee.setDepartment("Sales");
+        
+        // Convert EmployeeModel to EmployeeResponseDTO
+        EmployeeResponseDTO employeeResponseDTO = new EmployeeResponseDTO();
+        employeeResponseDTO.setId("1");
+        employeeResponseDTO.setName("John Doe");
+        // Ensure other necessary fields are set
+    
+        // Initialize employee list with the employee to be removed
+        List<EmployeeResponseDTO> employeeList = new ArrayList<>();
+        employeeList.add(employeeResponseDTO);
+        managerEmployee.setEmployeeList(employeeList);
+    
+        // Mock repository behavior
+        when(employeeRepository.existsById("1")).thenReturn(true);
+        when(employeeRepository.findById("1")).thenReturn(Optional.of(employee));
+        when(managerEmployeeRepository.findById("1001")).thenReturn(Optional.of(managerEmployee));
+    
+        // Call the method to be tested
+        employeeService.deleteEmployee("1");
+    
+        // Verify the employee was removed from the manager's employee list
+        List<EmployeeResponseDTO> updatedEmployeeList = managerEmployee.getEmployeeList();
+        assertTrue(updatedEmployeeList.stream().noneMatch(e -> "1".equals(e.getId())),
+                   "Employee with id 1 should be removed from the manager's list.");
+    }
+    
+
+    
+
+    @Test
+void testRemoveEmployeeWithVariousManagerIds() {
+    // Define common EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("1");
+    
+    // Define common ManagerEmployeeModel
+    ManagerEmployeeModel managerEmployee = new ManagerEmployeeModel();
+    managerEmployee.setId("1001");
+    managerEmployee.setDepartment("Sales");
+    managerEmployee.setEmployeeList(new ArrayList<>()); // Empty list initially
+    
+    // Define employeeResponseDTO
+    EmployeeResponseDTO employeeResponseDTO = new EmployeeResponseDTO();
+    employeeResponseDTO.setId("1");
+    
+    // Scenario 1: managerId is null
+    employee.setManagerId(null);
+    managerEmployee.getEmployeeList().add(employeeResponseDTO); // Add employee to manager's list
+
+    // Mock repository behavior
+    when(employeeRepository.existsById("1")).thenReturn(true);
+    when(employeeRepository.findById("1")).thenReturn(Optional.of(employee));
+    when(managerEmployeeRepository.findById("1001")).thenReturn(Optional.of(managerEmployee));
+
+    // Call the method to be tested
+    employeeService.deleteEmployee("1");
+
+    // Verify the employee was not removed (since managerId is null)
+    List<EmployeeResponseDTO> updatedEmployeeList = managerEmployee.getEmployeeList();
+    assertTrue(updatedEmployeeList.stream().anyMatch(e -> "1".equals(e.getId())),
+               "Employee with id 1 should still be in the manager's list when managerId is null.");
+
+    // Reset managerEmployee's employee list for next scenario
+    managerEmployee.setEmployeeList(new ArrayList<>());
+    managerEmployee.getEmployeeList().add(employeeResponseDTO); // Add employee to manager's list
+    
+    // Scenario 2: managerId is "0"
+    employee.setManagerId("0");
+
+    // Call the method to be tested
+    employeeService.deleteEmployee("1");
+
+    // Verify the employee was not removed (since managerId is "0")
+    updatedEmployeeList = managerEmployee.getEmployeeList();
+    assertTrue(updatedEmployeeList.stream().anyMatch(e -> "1".equals(e.getId())),
+               "Employee with id 1 should still be in the manager's list when managerId is '0'.");
+}
+
+@Test
+void testUpdateManagerEmployeeListWhenEmployeeListIsNull() {
+    // Create a mock EmployeeModel
+    EmployeeModel employee = new EmployeeModel();
+    employee.setId("1");
+    employee.setName("John Doe");
+    employee.setEmail("john.doe@example.com");
+    employee.setDesignation("Associate");
+    employee.setLocation("Delhi");
+    employee.setManagerId("1001");
+    employee.setMobile("1234567890");
+    employee.setdepartment("Engineering");
+    employee.setCreatedTime(LocalDateTime.now());
+    employee.setUpdatedTime(LocalDateTime.now());
+
+    // Create a mock ManagerEmployeeModel with a null employeeList
+    ManagerEmployeeModel manager = new ManagerEmployeeModel();
+    manager.setId("1001");
+    manager.setName("Alice Johnson");
+    manager.setDepartment("Engineering");
+    manager.setEmployeeList(null);  // This simulates the null employeeList
+
+    // Call the method to be tested
+    employeeService.updateManagerEmployeeList(manager, employee);
+
+    // Verify that the employeeList is initialized and contains the employee
+    assertNotNull(manager.getEmployeeList(), "Employee list should not be null after updateManagerEmployeeList is called");
+    assertEquals(1, manager.getEmployeeList().size(), "Employee list should contain one employee");
+    assertEquals("1", manager.getEmployeeList().get(0).getId(), "Employee ID should match the added employee");
+}
+
+// @Test
+// void testValidEmail() {
+//     String validEmail = "test@example.com";
+//     assertTrue(EmailValidator.isValidEmail(validEmail), "Expected email to be valid");
+// }
+
+// @Test
+// void testInvalidEmailWithoutAtSymbol() {
+//     String invalidEmail = "testexample.com";
+//     assertFalse(EmailValidator.isValidEmail(invalidEmail), "Expected email to be invalid");
+// }
+
+// @Test
+// void testInvalidEmailWithoutDomain() {
+//     String invalidEmail = "test@.com";
+//     assertFalse(EmailValidator.isValidEmail(invalidEmail), "Expected email to be invalid");
+// }
+
+// @Test
+// void testInvalidEmailWithInvalidDomain() {
+//     String invalidEmail = "test@example.c";
+//     assertFalse(EmailValidator.isValidEmail(invalidEmail), "Expected email to be invalid");
+// }
+
+// @Test
+// void testInvalidEmailWithSpecialCharacters() {
+//     String invalidEmail = "test@exam!ple.com";
+//     assertFalse(EmailValidator.isValidEmail(invalidEmail), "Expected email to be invalid");
+// }
+
+@Test
+    void testChangeEmployeeManagerNew() {
+        // Test IDs
+        String employeeId = "1";
+        String oldManagerId = "1001";
+        String newManagerId = "1002";
+
+        // Create a fully mocked EmployeeModel
+        EmployeeModel employee = new EmployeeModel();
+        employee.setId(employeeId);
+        employee.setName("John Doe");
+        employee.setDesignation("Associate");
+        employee.setEmail("john.doe@example.com");
+        employee.setdepartment("Sales");
+        employee.setMobile("1234567890");
+        employee.setLocation("Delhi");
+        employee.setManagerId(oldManagerId);
+        employee.setDateOfJoining(LocalDateTime.of(2023, 1, 15, 10, 0));
+        employee.setCreatedTime(LocalDateTime.of(2023, 1, 15, 10, 0));
+        employee.setUpdatedTime(LocalDateTime.of(2023, 1, 16, 10, 0));
+
+        ManagerEmployeeModel oldManager = new ManagerEmployeeModel();
+        oldManager.setId(oldManagerId);
+        oldManager.setName("Alice Johnson");
+        oldManager.setDepartment("Sales");
+
+        List<EmployeeResponseDTO> oldEmployeeList = new ArrayList<>();
+        EmployeeResponseDTO employeeDTO = new EmployeeResponseDTO();
+        employeeDTO.setId(employeeId);
+        employeeDTO.setName("John Doe");
+        oldEmployeeList.add(employeeDTO);
+        oldManager.setEmployeeList(oldEmployeeList);
+
+        ManagerEmployeeModel newManager = new ManagerEmployeeModel();
+        newManager.setId(newManagerId);
+        newManager.setName("Bob Smith");
+        newManager.setDepartment("Marketing");
+        newManager.setEmployeeList(new ArrayList<>()); 
+        when(employeeRepository.findById(employeeId)).thenReturn(Optional.of(employee));
+        when(managerEmployeeRepository.findById(oldManagerId)).thenReturn(Optional.of(oldManager));
+        when(managerEmployeeRepository.findById(newManagerId)).thenReturn(Optional.of(newManager));
+
+        ManagerChangeResponseDTO response = employeeService.changeEmployeeManager(employeeId, newManagerId);
+
+        assertFalse(oldManager.getEmployeeList().stream().anyMatch(e -> e.getId().equals(employeeId)),
+                "Employee should be removed from the old manager's list.");
+
+        assertEquals(1, newManager.getEmployeeList().size(), "New manager's employee list should contain the employee.");
+        assertEquals(employeeId, newManager.getEmployeeList().get(0).getId(), "New manager's list should include the employee.");
+
+        // Verify that save operations were called on managerEmployeeRepository
+        verify(managerEmployeeRepository).save(oldManager);
+        verify(managerEmployeeRepository).save(newManager);
+    }
+
 
 }

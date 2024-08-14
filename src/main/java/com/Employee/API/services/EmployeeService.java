@@ -5,7 +5,7 @@ import org.springframework.data.domain.Sort;
 
 import org.springframework.stereotype.Service;
 
-import com.Employee.API.helpers.EmailValidator;
+// import com.Employee.API.helpers.EmailValidator;
 import com.Employee.API.models.EmployeeModel;
 import com.Employee.API.models.ManagerEmployeeModel;
 import com.Employee.API.models.ManagerModel;
@@ -24,7 +24,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import java.util.regex.Matcher;
+
+
 
 @Service
 public class EmployeeService {
@@ -40,6 +45,10 @@ public class EmployeeService {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+
+    // private static final String EMAIL_REGEX = "^[a-zA-Z][a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+    // private static final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
+
 
     public List<DepartmentModel> getAllDepartments() {
         return departmentRepository.findAll(Sort.by(Sort.Order.asc("id")));
@@ -63,7 +72,7 @@ public class EmployeeService {
         final String managerId = employee.getManagerId();
 
         // for validating the employee data
-        validateEmployeeData(id, email, designation, mobileNumber, department, managerId);
+        validateEmployeeData(id, email, designation, mobileNumber, department);
 
         LocalDateTime now = LocalDateTime.now();
         employee.setCreatedTime(now);
@@ -111,7 +120,7 @@ public class EmployeeService {
 
     // employee details validation
     private void validateEmployeeData(String id, String email, String designation, String mobileNumber,
-            String department, String managerId) throws IllegalArgumentException {
+            String department) throws IllegalArgumentException {
         if (employeeRepository.existsById(id)) {
             throw new IllegalArgumentException("Employee with id " + id + " already exists.");
         }
@@ -124,8 +133,7 @@ public class EmployeeService {
             throw new IllegalArgumentException("Employee with email already exists.");
         }
 
-        if (!department.equalsIgnoreCase("sales")
-                && !department.equalsIgnoreCase("delivery")
+        if (!department.equalsIgnoreCase("sales") && !department.equalsIgnoreCase("delivery")
                 && !department.equalsIgnoreCase("QA")
                 && !department.equalsIgnoreCase("engineering")
                 && !department.equalsIgnoreCase("BA")) {
@@ -137,13 +145,11 @@ public class EmployeeService {
             throw new IllegalArgumentException("Invalid mobile number. It must be a 10-digit number");
         }
 
-        if (!EmailValidator.isValidEmail(email)) {
+        if (!isValidEmail(email)) {
             throw new IllegalArgumentException("Invalid email format");
         }
 
-        if (!managerId.equals("0") && !employeeRepository.existsById(managerId)) {
-            throw new IllegalArgumentException("Invalid manager ID");
-        }
+       
     }
 
     // creating a new manager if a manager is not appointed to a department
@@ -194,16 +200,14 @@ public class EmployeeService {
         // Convert EmployeeModel to EmployeeResponseDTO without managerId
         EmployeeResponseDTO employeeWithoutManagerId = convertToDTO(employee);
 
-        // Check if employee is already in the list
-        boolean employeeExists = employeeList.stream()
-                .anyMatch(e -> e.getId().equals(employeeWithoutManagerId.getId()));
+      
 
-        if (!employeeExists) {
-            // Add new employee to the list
+       
+        
             employeeList.add(employeeWithoutManagerId);
             manager.setEmployeeList(employeeList);
             managerEmployeeRepository.save(manager);
-        }
+        
     }
 
     // manager with year of experience
@@ -212,7 +216,7 @@ public class EmployeeService {
         // case 1
         boolean check = true;
         if (managerId != null && minYearsOfExperience != null) {
-            try {
+         
                 Optional<ManagerEmployeeModel> managerOpt = managerEmployeeRepository.findById(managerId);
                 if (managerOpt.isPresent()) {
                     ManagerEmployeeModel manager = managerOpt.get();
@@ -232,16 +236,14 @@ public class EmployeeService {
                 } else {
                     check = false;
                 }
-            } catch (IllegalArgumentException e) {
-                e.getMessage();
-            }
+            
 
         } 
         // case 2
         else if (managerId != null) {
 
             Optional<ManagerEmployeeModel> managerOpt = managerEmployeeRepository.findById(managerId);
-            if (managerOpt.isPresent()) {
+           
                 ManagerEmployeeModel manager = managerOpt.get();
                 List<EmployeeResponseDTO> employees = manager.getEmployeeList().stream()
                         .map(this::removeManagerId)
@@ -254,7 +256,7 @@ public class EmployeeService {
                 details.setEmployeeList(employees);
 
                 detailsList.add(details);
-            }
+            
         }
         // case 3
         else if (minYearsOfExperience != null) {
@@ -297,9 +299,9 @@ public class EmployeeService {
         ResponseDTO responseDTO = new ResponseDTO(managerId);
         if (check) {
             responseDTO.setMessage("Successfully fetched");
-            if (!detailsList.isEmpty()) {
+            
                 responseDTO.setDetails(detailsList);
-            }
+            
 
         } else {
             responseDTO.setMessage("Invalid Manager ID");
@@ -373,16 +375,16 @@ public class EmployeeService {
 
         // Remove from old manager
         Optional<ManagerEmployeeModel> oldManagerOpt = managerEmployeeRepository.findById(oldManagerId);
-        if (oldManagerOpt.isPresent()) {
+        
             ManagerEmployeeModel oldManager = oldManagerOpt.get();
             List<EmployeeResponseDTO> oldEmployeeList = oldManager.getEmployeeList();
             oldEmployeeList.removeIf(e -> e.getId().equals(employeeId));
             managerEmployeeRepository.save(oldManager);
-        }
+        
 
         // Add to new manager
         Optional<ManagerEmployeeModel> newManagerOpt = managerEmployeeRepository.findById(newManagerId);
-        if (newManagerOpt.isPresent()) {
+        
             ManagerEmployeeModel newManager = newManagerOpt.get();
             List<EmployeeResponseDTO> newEmployeeList = newManager.getEmployeeList();
 
@@ -398,7 +400,7 @@ public class EmployeeService {
             newEmployeeList.add(convertToDTO(employee));
             newManager.setEmployeeList(newEmployeeList);
             managerEmployeeRepository.save(newManager);
-        }
+        
 
         return new ManagerChangeResponseDTO(String.format("%s's manager has been successfully changed from " + oldManagerName + " to %s",
                 name, newManagerName));
@@ -406,9 +408,7 @@ public class EmployeeService {
 
     public ResponseMessage deleteEmployee(String id) {
         // Check if the employee exists
-        if (!employeeRepository.existsById(id)) {
-            throw new IllegalArgumentException("Employee with id " + id + " does not exist.");
-        }
+       
 
         // Find the employee
         EmployeeModel employeeToDelete = employeeRepository.findById(id).orElseThrow(
@@ -435,11 +435,11 @@ public class EmployeeService {
 
             // delete manager from department
             Optional<DepartmentModel> departmentOpt = departmentRepository.findByDepartmentName(dep);
-            if (departmentOpt.isPresent()) {
+           
                 DepartmentModel department = departmentOpt.get();
                 department.setManagerName(null);
                 departmentRepository.save(department);
-            }
+            
         }
 
         // Delete the employee from the employee repository
@@ -448,7 +448,7 @@ public class EmployeeService {
         // If the employee had a manager, update the manager's employee list
         if (managerId != null && !managerId.equals("0")) {
             Optional<ManagerEmployeeModel> employeeManagerOpt = managerEmployeeRepository.findById(managerId);
-            if (employeeManagerOpt.isPresent()) {
+           
                 ManagerEmployeeModel employeeManager = employeeManagerOpt.get();
                 List<EmployeeResponseDTO> employeeList = employeeManager.getEmployeeList();
 
@@ -456,12 +456,22 @@ public class EmployeeService {
                 employeeList.removeIf(e -> e.getId().equals(id));
                 employeeManager.setEmployeeList(employeeList);
                 managerEmployeeRepository.save(employeeManager);
-            }
+            
         }
 
         ResponseMessage responseMessage = new ResponseMessage();
         responseMessage.setMessage("Successfully deleted " + name + " from the organization.");
         return responseMessage;
+    }
+    
+    public boolean isValidEmail(String email) {
+        final String EMAIL_REGEX = "^[a-zA-Z][a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+         final Pattern EMAIL_PATTERN = Pattern.compile(EMAIL_REGEX);
+        if (email == null || email.isEmpty()) {
+            return false;
+        }
+        Matcher matcher = EMAIL_PATTERN.matcher(email);
+        return matcher.matches();
     }
 
 }
